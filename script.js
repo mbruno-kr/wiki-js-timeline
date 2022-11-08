@@ -1,5 +1,4 @@
-const dataSource =
-  "https://gist.githubusercontent.com/mbround18/14afba09ee3e9d9263141ea0a4d82459/raw/dd6a7de94ef0b5a41615bdc8af0dd463a5e092c7/garth.events.json";
+const dataSource = window["TIMELINE_SOURCE_URL"];
 
 function waitForElm(selector) {
   return new Promise((resolve) => {
@@ -35,14 +34,14 @@ function zoomOut() {
   return false;
 }
 
-function addEvent({ time, event, title }) {
+function addEvent({ published_at, body, name }) {
   waitForElm("#timeline").then((timeline) => {
     const li = document.createElement("li");
     const container = document.createElement("div");
     li.className = "slide-in";
     const block = document.createElement("time");
-    block.innerText = `${time} AN ${title ? " : " + title : ""}`;
-    const text = document.createTextNode(event);
+    block.innerText = `${published_at} AN ${name ? " : " + name : ""}`;
+    const text = document.createTextNode(body);
     container.appendChild(block);
     container.appendChild(text);
     li.appendChild(container);
@@ -51,7 +50,7 @@ function addEvent({ time, event, title }) {
 }
 
 async function addEvents(data) {
-  let sorted = data.sort((a, b) => a.time - b.time);
+  let sorted = data.sort((a, b) => a.published_at - b.published_at);
   for (const event of sorted) {
     addEvent(event);
   }
@@ -89,14 +88,25 @@ function main() {
 
 waitForElm("#timeline")
   .then(async () => {
-    const derp = await axios.get(dataSource);
-    let jsonString = derp.data;
-    jsonString = jsonString
-      .replace(/\\"|"(?:\\"|[^"])*"|(\/\/.*|\/\*[\s\S]*?\*\/)/g, (m, g) =>
-        g ? "" : m
-      )
-      .trim();
-    return JSON.parse(jsonString);
+    try {
+      const derp = await axios.get(dataSource);
+      let jsonString = derp.data;
+      jsonString = jsonString
+        .replace(/\\"|"(?:\\"|[^"])*"|(\/\/.*|\/\*[\s\S]*?\*\/)/g, (m, g) =>
+          g ? "" : m
+        )
+        .trim();
+      return JSON.parse(jsonString);
+    } catch (e) {
+      return [
+        {
+          published_at: new Date(Date.now()).toISOString(),
+          name: "Example Title",
+          body: "Example Body"
+        }
+      ]
+    }
+    
   })
   .then(addEvents)
   .then(main);
